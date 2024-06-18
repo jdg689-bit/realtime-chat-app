@@ -4,6 +4,7 @@ import { NextAuthOptions } from "next-auth";
 import { UpstashRedisAdapter } from "@next-auth/upstash-redis-adapter";
 import { db } from "./db";
 import GoogleProvider from "next-auth/providers/google"
+import { fetchRedis } from "@/helpers/redis";
 
 function getGoogleCredentials() {
     // Get provider variables used below
@@ -40,12 +41,16 @@ export const authOptions: NextAuthOptions = { // typescript syntax specifying th
     ],
     callbacks: {
         async jwt ({token, user}) {
-            const dbUser = (await db.get(`user:${token.id}`)) as User | null // Check whether this is a new user
-
-            if (!dbUser) {
+            /*
+            const dbUser = (await db.get(`user:${token.id}`)) as User | null // First user to log in is being cached, userID is always that of first log in
+            */
+           const dbUserResult = await fetchRedis('get', `user:${token.id}`) as string | null // Redis helper bypasses caching behaviour
+            if (!dbUserResult) {
                 token.id = user!.id
                 return token
             }
+
+            const dbUser = JSON.parse(dbUserResult) as User
 
             return {
                 id: dbUser.id,
