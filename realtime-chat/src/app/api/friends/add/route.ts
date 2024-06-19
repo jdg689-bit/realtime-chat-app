@@ -1,5 +1,7 @@
 // Route to add friends
 // Validate client email and get userId from redis server
+// This file MUST be called route.ts
+// docs: https://nextjs.org/docs/app/building-your-application/routing/route-handlers
 
 import { fetchRedis } from "@/helpers/redis"
 import { authOptions } from "@/lib/auth"
@@ -9,6 +11,7 @@ import { getServerSession } from "next-auth"
 import { z } from "zod"
 
 export async function POST(req: Request) {
+    // This function is executed when the user visits the /add route (name of parent folder)
     try {
         const body = await req.json() // Get request body
 
@@ -63,7 +66,7 @@ export async function POST(req: Request) {
         // Is the currently logged in user (session.user.id) a member of the incoming friend requests of the person we're trying to add?
         const isAlreadyAdded = await fetchRedis(
             'sismember', 
-            `user:${idToAdd}:incoming_friend_requests`, // REVIEW: NOT SURE WHERE THIS CAME FROM - MUST BE A REDIS THING
+            `user:${idToAdd}:incoming_friend_requests`, 
             session.user.id
         ) as 0 | 1
 
@@ -83,13 +86,12 @@ export async function POST(req: Request) {
         }
 
         // valid request, send friend request
-        db.sadd(`user:${idToAdd}:incoming_friend_requests`, session.user.id)
-
+        db.sadd(`user:${idToAdd}:incoming_friend_requests`, session.user.id) // Creating a set with the name ...:incoming_friend_requests
         return new Response('OK')
 
     } catch (error) {
         if(error instanceof z.ZodError) {
-            return new Response('Invalud request payload', { status: 422 }) // unprocessable entity
+            return new Response('Invalid request payload', { status: 422 }) // unprocessable entity
         }    
 
         return new Response('Invalid request', { status: 400 })
