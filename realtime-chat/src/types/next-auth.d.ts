@@ -14,8 +14,9 @@ declare module 'next-auth/jwt' {
 }
 
 declare module 'next-auth' {
+    // & adds id to the existing User object (see db.d.ts)
     interface Session {
-        user: User & { // & adds id to the existing User object (see db.d.ts)
+        user: User & { 
             id: UserId
         }
     }

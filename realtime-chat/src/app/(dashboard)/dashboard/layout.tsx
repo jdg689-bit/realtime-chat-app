@@ -10,6 +10,8 @@ import Image from "next/image";
 import SignOutButton from "@/components/SignOutButton";
 import FriendRequestSidebarOptions from "@/components/FriendRequestSidebarOptions";
 import { fetchRedis } from "@/helpers/redis";
+import { getFriendsById } from "@/helpers/getFriendsById";
+import SidebarChatList from "@/components/SidebarChatList";
 
 interface LayoutProps {
     children: ReactNode
@@ -45,6 +47,8 @@ const Layout = async ({ children }: LayoutProps ) => {
 
     const unseenRequestCount = unseenRequests.length
 
+    // Get friends list
+    const friendsList = await getFriendsById(session.user.id)
 
     return (
         <div className="w-full flex h-screen">
@@ -53,14 +57,17 @@ const Layout = async ({ children }: LayoutProps ) => {
                     <Icons.Logo className="h-8 w-auto text-indigo-600" />
                 </Link>
 
-                <div className="text-x font-semibold leading-6 text-gray-400">
-                    Your chats
-                </div>
+                {friendsList.length > 0 ? (
+                    <div className="text-x font-semibold leading-6 text-gray-400">
+                        Your chats
+                    </div> 
+                ) : null}
 
                 <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                         <li>
-                            // the user's chats
+                            {/* Client component needed for real time */}
+                            <SidebarChatList sessionId={session.user.id} friends={friendsList} />
                         </li>
                         <li>
                             <div className="text-xs font-semibold leading-6 text-gray-400">Overview</div>
@@ -80,15 +87,14 @@ const Layout = async ({ children }: LayoutProps ) => {
                                         </li>
                                     )
                                 }))}
+                                <li>
+                                    {/* Friend requests; client component */}
+                                    <FriendRequestSidebarOptions
+                                        sessionId={session.user.id}
+                                        initialUnseenRequestCount={unseenRequestCount} 
+                                    />
+                                </li>
                             </ul>
-                        </li>
-
-                        <li>
-                            {/* Friend requests; client component */}
-                            <FriendRequestSidebarOptions
-                                sessionId={session.user.id}
-                                initialUnseenRequestCount={unseenRequestCount} 
-                            />
                         </li>
 
                         <li className="-mx-6 mt-auto flex items-center">
@@ -96,6 +102,7 @@ const Layout = async ({ children }: LayoutProps ) => {
                                 <div className="relative h-8 w-8 bg-gray-50">
                                     <Image 
                                         fill
+                                        sizes="32px" //h-8 = 2rem = 32px (roughly)
                                         referrerPolicy='no-referrer'
                                         className='rounded-full'
                                         src={session.user.image || ''}

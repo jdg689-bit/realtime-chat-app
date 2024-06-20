@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = { // typescript syntax specifying th
             */
            const dbUserResult = await fetchRedis('get', `user:${token.id}`) as string | null // Redis helper bypasses caching behaviour
             if (!dbUserResult) {
-                token.id = user!.id
+                token.id = user?.id
                 return token
             }
 
