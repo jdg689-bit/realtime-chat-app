@@ -11,7 +11,6 @@ import { pusherServer } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
 
 export async function POST(req: Request) {
-    console.log('Route called')
     try {
         // process request body
         const {text, chatId}: {text:string, chatId: string} = await req.json();
@@ -45,7 +44,7 @@ export async function POST(req: Request) {
 
         // get sender information
         const senderData = await fetchRedis('get', `user:${session.user.id}`) as string
-        const sender = JSON.parse(senderData);
+        const sender = JSON.parse(senderData) as User;
 
         // SEND MESSAGE
         // add message to Redis set
@@ -60,8 +59,14 @@ export async function POST(req: Request) {
 
         const message = messageValidator.parse(messageData);
 
-        // TRIGGER REALTIME EVENT
-        pusherServer.trigger(toPusherKey(`chat:${chatId}`), 'new_message', message)
+        // TRIGGER REALTIME EVENTS
+        pusherServer.trigger(toPusherKey(`chat:${chatId}`), 'incoming_message', message)
+
+        pusherServer.trigger(toPusherKey(`user:${friendId}:chats`), 'new_message', {
+            ...message, 
+            senderImg: sender.image,
+            senderName: sender.name
+        })
 
         await db.zadd(`chat:${chatId}:messages`, {
             score: timestamp,

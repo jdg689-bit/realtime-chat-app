@@ -1,12 +1,20 @@
 "use client"
 
-import { chatHrefConstructor } from '@/lib/utils'
+import { pusherClient } from '@/lib/pusher'
+import { chatHrefConstructor, toPusherKey } from '@/lib/utils'
 import { usePathname, useRouter } from 'next/navigation'
 import { FC, useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
+import UnseenChatToast from './unseenChatToast'
 
 interface SidebarChatListProps {
   friends: User[]
   sessionId: string
+}
+
+interface ExtendedMessage extends Message {
+  senderImg: string
+  senderName: string
 }
 
 const SidebarChatList: FC<SidebarChatListProps> = ({sessionId, friends}) => {
@@ -16,6 +24,50 @@ const SidebarChatList: FC<SidebarChatListProps> = ({sessionId, friends}) => {
 
   // because this is only a state, you will not see a count for new messages received when offline
   const [unseenMessages, setUnseenMessages] = useState<Message[]>([])
+
+  // REALTIME
+  useEffect(() => {
+    pusherClient.subscribe(toPusherKey(`user:${sessionId}:chats`))
+    pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`)) // for refreshing page when request is accepted/rejected
+    
+    const handleNewMessage = (message: ExtendedMessage) => {
+      // no toast notification when already in chat
+      const shouldNotify = pathname !== `/dashboard/chat/${chatHrefConstructor(sessionId, message.senderId)}`
+
+      if (!shouldNotify) return
+
+      // should notify
+      toast.custom((t) => (
+        // custom component
+        <UnseenChatToast
+          t={t}
+          sessionId={sessionId}
+          senderId={message.senderId}
+          senderImg={message.senderImg}
+          senderMessage={message.text}
+          senderName={message.senderName}
+        />
+      ))
+
+      setUnseenMessages((prev) => [...prev, message])
+    }
+
+    const handleNewFriend = () => {
+      // refresh page
+      router.refresh()
+    }
+    
+    pusherClient.bind('new_message', handleNewMessage)
+    pusherClient.bind('new_friend', handleNewFriend)
+
+    return () => {
+      pusherClient.unsubscribe(toPusherKey(`user:${sessionStorage}:chats`))
+      pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:friends`))
+
+      pusherClient.unbind('new_message', handleNewMessage)
+      pusherClient.unbind('new_friend', handleNewFriend)
+    }
+  }, [pathname, sessionId, router])
 
   // useEffect to check if pathname has been visited
   // recall effects are triggered when dependencies change

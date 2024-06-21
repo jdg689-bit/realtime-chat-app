@@ -27,18 +27,17 @@ const Messages: FC<MessagesProps> = ({initialMessages, sessionId, sessionImg, ch
         console.log(`Subscribed to channel: chat:${chatId}`)
 
         const handleNewMessage = (message: Message) => {
-            console.log('handling message')
             setMessages((prev) => [message, ...prev]);
         }
 
-        pusherClient.bind('new_message', handleNewMessage)
+        pusherClient.bind('incoming_message', handleNewMessage)
 
         // clean up
         return () => {
             pusherClient.unsubscribe(
                 toPusherKey(`chat:${chatId}`)
             )
-            pusherClient.unbind('new_message', handleNewMessage)
+            pusherClient.unbind('incoming_message', handleNewMessage)
         }
     })
     
