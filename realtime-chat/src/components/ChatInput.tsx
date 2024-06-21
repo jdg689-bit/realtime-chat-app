@@ -18,6 +18,9 @@ const ChatInput: FC<ChatInputProps> = ({chatPartner, chatId}) => {
     const [textContent, setTextContent] = useState<string>('')
 
     const sendMessage = async () => {
+        // don't allow empty messages
+        if(!textContent) return 
+
         setIsSending(true);
 
         try {

@@ -1,10 +1,12 @@
 // type IncomingFriendRequest[] is defined in pusher.d.ts
 "use client"
 
+import { pusherClient } from '@/lib/pusher'
+import { toPusherKey } from '@/lib/utils'
 import axios from 'axios'
 import { Check, UserPlus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { FC, useState } from 'react'
+import { FC, useEffect, useState } from 'react'
 
 interface FriendRequestsProps {
   incomingFriendRequests: IncomingFriendRequest[]
@@ -19,6 +21,28 @@ const FriendRequests: FC<FriendRequestsProps> = ({
     const [friendRequests, setFriendRequests] = useState<IncomingFriendRequest[]>(
         incomingFriendRequests
     )
+
+    // SUBSCRIBE TO REALTIME EVENTS
+    // Shows pending friend request count in real time
+    useEffect(() => {
+        pusherClient.subscribe(toPusherKey(`user:${sessionId}:incoming_friend_requests`))
+        console.log(`subscribed to channel: ${toPusherKey(`user:${sessionId}:incoming_friend_requests`)}`)
+
+        const friendRequestHandler = ({senderId, senderEmail}: IncomingFriendRequest) => {
+            // update friend requests state
+            setFriendRequests((prev) => [...prev, {senderId, senderEmail}])
+            console.log(`Friend requests: ${friendRequests}`);
+        }
+
+        // listen for the incoming_friend_requests event, this is defined on pusherServer
+        pusherClient.bind('incoming_friend_requests', friendRequestHandler)
+
+        return () => {
+            //clean up
+            pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:incoming_friend_requests`))
+            pusherClient.unbind('incoming_friend_requests', friendRequestHandler)
+        }
+    }, [])
 
     const acceptFriend = async (senderId: string) => {
         await axios.post('/api/friends/accept', { id: senderId })

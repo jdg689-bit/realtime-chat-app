@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { Message, messageValidator } from "@/lib/validations/message";
 import { getServerSession } from "next-auth";
 import { nanoid } from 'nanoid';
+import { pusherServer } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 
 export async function POST(req: Request) {
     console.log('Route called')
@@ -57,6 +59,9 @@ export async function POST(req: Request) {
         }
 
         const message = messageValidator.parse(messageData);
+
+        // TRIGGER REALTIME EVENT
+        pusherServer.trigger(toPusherKey(`chat:${chatId}`), 'new_message', message)
 
         await db.zadd(`chat:${chatId}:messages`, {
             score: timestamp,

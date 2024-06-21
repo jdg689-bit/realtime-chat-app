@@ -1,20 +1,46 @@
 "use client"
 
-import { classnames } from '@/lib/utils'
+import { classnames, toPusherKey } from '@/lib/utils'
 import { Message } from '@/lib/validations/message'
-import { FC, useRef, useState } from 'react'
+import { FC, useEffect, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import Image from 'next/image'
+import { pusherClient } from '@/lib/pusher'
 
 interface MessagesProps {
   initialMessages: Message[]
   sessionId: string
   sessionImg: string | null | undefined
   chatPartner: User
+  chatId: string
 }
 
-const Messages: FC<MessagesProps> = ({initialMessages, sessionId, sessionImg, chatPartner}) => {
+const Messages: FC<MessagesProps> = ({initialMessages, sessionId, sessionImg, chatId, chatPartner}) => {
     const [messages, setMessages] = useState<Message[]>(initialMessages)
+        
+    // REAL TIME
+    // Subscribe to pusher channel
+    useEffect(() => {
+        pusherClient.subscribe(
+            toPusherKey(`chat:${chatId}`)
+        )
+        console.log(`Subscribed to channel: chat:${chatId}`)
+
+        const handleNewMessage = (message: Message) => {
+            console.log('handling message')
+            setMessages((prev) => [message, ...prev]);
+        }
+
+        pusherClient.bind('new_message', handleNewMessage)
+
+        // clean up
+        return () => {
+            pusherClient.unsubscribe(
+                toPusherKey(`chat:${chatId}`)
+            )
+            pusherClient.unbind('new_message', handleNewMessage)
+        }
+    })
     
     const scrollDownRef = useRef<HTMLDivElement | null>(null) // use to auto scroll when new message appears
 
