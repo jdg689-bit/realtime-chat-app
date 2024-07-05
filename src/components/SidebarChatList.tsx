@@ -24,6 +24,7 @@ const SidebarChatList: FC<SidebarChatListProps> = ({sessionId, friends}) => {
 
   // because this is only a state, you will not see a count for new messages received when offline
   const [unseenMessages, setUnseenMessages] = useState<Message[]>([])
+  const [activeChats, setActiveChats] = useState<User[]>(friends)
 
   // REALTIME
   useEffect(() => {
@@ -52,9 +53,8 @@ const SidebarChatList: FC<SidebarChatListProps> = ({sessionId, friends}) => {
       setUnseenMessages((prev) => [...prev, message])
     }
 
-    const handleNewFriend = () => {
-      // refresh page
-      router.refresh()
+    const handleNewFriend = (newFriend: User) => {
+      setActiveChats((prev) => [...prev, newFriend])
     }
     
     pusherClient.bind('new_message', handleNewMessage)

@@ -41,19 +41,29 @@ export async function POST(req: Request) {
             return new Response('No pending friend request.', {status:400})
         }
 
-        // Trigger realtime event, notify user of accepted request
-        pusherServer.trigger(toPusherKey(`user:${idToAdd}:friends`), 'new_friend', {})
+        const [userRaw, friendRaw] = (await Promise.all([
+            fetchRedis('get', `user:${session.user.id}`),
+            fetchRedis('get', `user:${idToAdd}`),
+        ])) as [string, string]
 
-        // ADD FRIEND
-        // Add idToAdd to users friend set
-        await db.sadd(`user:${session.user.id}:friends`, idToAdd)
+        const user = JSON.parse(userRaw) as User
+        const friend = JSON.parse(friendRaw) as User
 
-        // Add user to idToAdds friend set
-        await db.sadd(`user:${idToAdd}:friends`, session.user.id)
+        await Promise.all([
+            // Trigger realtime event, notify user of accepted request
+            pusherServer.trigger(toPusherKey(`user:${idToAdd}:friends`), 'new_friend', user),
+            pusherServer.trigger(toPusherKey(`user:${session.user.id}:friends`), 'new_friend', friend),
 
-        // Remove users from one another's friend request sets
-        // await db.srem(`user:${idToAdd}:incoming_friend_requests`, session.user.id)
-        await db.srem(`user:${session.user.id}:incoming_friend_requests`, idToAdd);
+            // ADD FRIEND
+            // Add idToAdd to users friend set
+            await db.sadd(`user:${session.user.id}:friends`, idToAdd),
+
+            // Add user to idToAdds friend set
+            await db.sadd(`user:${idToAdd}:friends`, session.user.id),
+
+            // Remove users from one another's friend request sets
+            await db.srem(`user:${session.user.id}:incoming_friend_requests`, idToAdd),
+        ])
 
         return new Response('OK')
         
