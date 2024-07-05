@@ -39,7 +39,7 @@ const Messages: FC<MessagesProps> = ({initialMessages, sessionId, sessionImg, ch
             )
             pusherClient.unbind('incoming_message', handleNewMessage)
         }
-    })
+    }, [chatId])
     
     const scrollDownRef = useRef<HTMLDivElement | null>(null) // use to auto scroll when new message appears
 

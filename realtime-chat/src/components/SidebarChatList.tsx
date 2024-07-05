@@ -5,7 +5,7 @@ import { chatHrefConstructor, toPusherKey } from '@/lib/utils'
 import { usePathname, useRouter } from 'next/navigation'
 import { FC, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import UnseenChatToast from './unseenChatToast'
+import UnseenChatToast from './UnseenChatToast'
 
 interface SidebarChatListProps {
   friends: User[]

@@ -3,6 +3,8 @@
 import { fetchRedis } from "@/helpers/redis";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db"
+import { pusherClient, pusherServer } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
             return new Response('Unauthorized', {status:401})
         }
 
-        // Check is users are already friend
+        // Check if users are already friends
         const isAlreadyFriends = await fetchRedis('sismember', `user:${session.user.id}:friends`, idToAdd);
 
         if (isAlreadyFriends) {
@@ -38,6 +40,9 @@ export async function POST(req: Request) {
         if (!hasFriendRequest) {
             return new Response('No pending friend request.', {status:400})
         }
+
+        // Trigger realtime event, notify user of accepted request
+        pusherServer.trigger(toPusherKey(`user:${idToAdd}:friends`), 'new_friend', {})
 
         // ADD FRIEND
         // Add idToAdd to users friend set
