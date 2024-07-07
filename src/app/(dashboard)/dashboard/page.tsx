@@ -15,6 +15,8 @@ const page = async ({}) => {
 
   const friends = await getFriendsById(session.user.id)
 
+  console.log(`friends: ${JSON.stringify(friends)}`)
+
   // Show last message for each chat on dashboard
 
   const friendsWithLastMessage = await Promise.all(
@@ -25,7 +27,11 @@ const page = async ({}) => {
         -1, -1
       ) as string[]
 
-      const lastMessage = JSON.parse(lastMessageRaw) as Message;
+      let lastMessage; 
+
+      if (lastMessageRaw) {
+        lastMessage = JSON.parse(lastMessageRaw) as Message
+      }
 
       return {
         ...friend,
@@ -34,8 +40,6 @@ const page = async ({}) => {
 
     })
   )
-
-  console.log(`Friends with last message: ${friendsWithLastMessage}`)
 
   return (
     <div className='container py-12'>
@@ -66,12 +70,16 @@ const page = async ({}) => {
 
               <div>
                 <h4 className='text-lg font-semibold'>{friend.name}</h4>
-                <p className='mt-1 max-w-md'>
-                  <span className='text-zinc-400'>
-                    {friend.lastMessage.senderId === session.user.id ? 'You: ' : ''}
-                  </span>
-                  {friend.lastMessage.text}
+                {friend.lastMessage ? (
+                  <p className='mt-1 max-w-md'>
+                    <span className='text-zinc-400'>
+                      {friend.lastMessage.senderId === session.user.id ? 'You: ' : ''}
+                    </span>
+                    {friend.lastMessage.text}
                 </p>
+                ) : (
+                  <p className='text-sm text-zinc-400'>No messages yet</p>
+                )}
               </div>
             </Link>
           </div>
